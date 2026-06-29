@@ -22,23 +22,23 @@ export default function DashboardPage() {
         const supabase = createClient()
 
         // Fetch stats in parallel
-        const [customersRes, ordersRes, paymentsRes, pendingRes] = await Promise.all([
-          supabase.from('customers').select('count()', { count: 'exact', head: true }),
-          supabase.from('orders').select('count()', { count: 'exact', head: true }),
-          supabase.from('payments').select('amount', { count: 'exact' }).eq('status', 'completed'),
-          supabase.from('orders').select('count()', { count: 'exact', head: true }).eq('status', 'pending'),
+        const [customersRes, ordersRes, ordersWithPriceRes, pendingRes] = await Promise.all([
+          supabase.from('customers').select('*'),
+          supabase.from('orders').select('*'),
+          supabase.from('orders').select('total_price'),
+          supabase.from('orders').select('*').eq('status', 'pending'),
         ])
 
         let totalRevenue = 0
-        if (paymentsRes.data) {
-          totalRevenue = paymentsRes.data.reduce((sum, p) => sum + (p.amount || 0), 0)
+        if (ordersWithPriceRes.data) {
+          totalRevenue = ordersWithPriceRes.data.reduce((sum, o) => sum + (o.total_price || 0), 0)
         }
 
         setStats({
-          totalCustomers: customersRes.count || 0,
-          totalOrders: ordersRes.count || 0,
+          totalCustomers: customersRes.data?.length || 0,
+          totalOrders: ordersRes.data?.length || 0,
           totalRevenue,
-          pendingOrders: pendingRes.count || 0,
+          pendingOrders: pendingRes.data?.length || 0,
         })
       } catch (error) {
         console.error('Error fetching stats:', error)

@@ -20,7 +20,7 @@ interface Order {
   total_price: number
   status: string
   order_date: string
-  customer: { name: string }
+  customerName: string
 }
 
 export function RecentOrders() {
@@ -31,14 +31,29 @@ export function RecentOrders() {
     const fetchOrders = async () => {
       try {
         const supabase = createClient()
-        const { data, error } = await supabase
+        const { data: ordersData, error: ordersError } = await supabase
           .from('orders')
-          .select('id, customer_id, quantity, total_price, status, order_date, customer:customer_id(name)')
+          .select('id, customer_id, quantity, total_price, status, order_date')
           .order('order_date', { ascending: false })
           .limit(5)
 
-        if (error) throw error
-        setOrders(data || [])
+        if (ordersError) throw ordersError
+
+        // Fetch customer names
+        const customerIds = ordersData?.map(o => o.customer_id) || []
+        const { data: customersData } = await supabase
+          .from('customers')
+          .select('id, name')
+          .in('id', customerIds)
+
+        const customerMap = new Map(customersData?.map(c => [c.id, c.name]) || [])
+
+        const enrichedOrders = ordersData?.map(order => ({
+          ...order,
+          customerName: customerMap.get(order.customer_id) || 'N/A',
+        })) || []
+
+        setOrders(enrichedOrders)
       } catch (error) {
         console.error('Error fetching orders:', error)
       } finally {
@@ -87,7 +102,7 @@ export function RecentOrders() {
               {orders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">
-                    {order.customer?.[0]?.name || 'N/A'}
+                    {order.customerName}
                   </TableCell>
                   <TableCell>{order.quantity}</TableCell>
                   <TableCell>Rs. {order.total_price?.toLocaleString()}</TableCell>
