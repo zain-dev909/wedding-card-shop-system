@@ -10,8 +10,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'Crystal Shaadi Card Shop',
+  description: 'Wedding card business management system',
   generator: 'v0.app',
   icons: {
     icon: [
