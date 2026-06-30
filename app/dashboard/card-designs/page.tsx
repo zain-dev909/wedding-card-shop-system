@@ -25,10 +25,10 @@ import { createClient } from '@/lib/supabase/client'
 import { Plus, Trash2, Edit2 } from 'lucide-react'
 
 interface CardDesign {
-  id: string
-  name: string
+  design_id: number
+  design_name: string
   category: string
-  price: number
+  price_per_card: number
   description: string
 }
 
@@ -40,9 +40,9 @@ export default function CardDesignsPage() {
   const [open, setOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
-    name: '',
+    design_name: '',
     category: 'Boxed',
-    price: 0,
+    price_per_card: 0,
     description: '',
   })
 
@@ -58,7 +58,7 @@ export default function CardDesignsPage() {
       const { data, error } = await supabase
         .from('card_designs')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('design_id', { ascending: false })
 
       if (error) throw error
       setDesigns(data || [])
@@ -76,7 +76,7 @@ export default function CardDesignsPage() {
         const { error } = await supabase
           .from('card_designs')
           .update(formData)
-          .eq('id', editingId)
+          .eq('design_id', parseInt(editingId))
 
         if (error) throw error
       } else {
@@ -87,7 +87,7 @@ export default function CardDesignsPage() {
         if (error) throw error
       }
 
-      setFormData({ name: '', category: 'Boxed', price: 0, description: '' })
+      setFormData({ design_name: '', category: 'Boxed', price_per_card: 0, description: '' })
       setEditingId(null)
       setOpen(false)
       fetchDesigns()
@@ -98,23 +98,23 @@ export default function CardDesignsPage() {
 
   const handleEdit = (design: CardDesign) => {
     setFormData({
-      name: design.name,
-      category: design.category,
-      price: design.price || 0,
+      design_name: design.design_name,
+      category: design.category || 'Boxed',
+      price_per_card: design.price_per_card || 0,
       description: design.description || '',
     })
-    setEditingId(design.id)
+    setEditingId(design.design_id.toString())
     setOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (design_id: number) => {
     if (!confirm('Are you sure?')) return
 
     try {
       const { error } = await supabase
         .from('card_designs')
         .delete()
-        .eq('id', id)
+        .eq('design_id', design_id)
 
       if (error) throw error
       fetchDesigns()
@@ -133,7 +133,7 @@ export default function CardDesignsPage() {
               <Button
                 onClick={() => {
                   setEditingId(null)
-                  setFormData({ name: '', category: 'Boxed', price: 0, description: '' })
+                  setFormData({ design_name: '', category: 'Boxed', price_per_card: 0, description: '' })
                 }}
               >
                 <Plus className="h-4 w-4" />
@@ -151,9 +151,9 @@ export default function CardDesignsPage() {
                   <Label htmlFor="name">Name *</Label>
                   <Input
                     id="name"
-                    value={formData.name}
+                    value={formData.design_name}
                     onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
+                      setFormData({ ...formData, design_name: e.target.value })
                     }
                     required
                   />
@@ -180,9 +180,9 @@ export default function CardDesignsPage() {
                   <Input
                     id="price"
                     type="number"
-                    value={formData.price}
+                    value={formData.price_per_card}
                     onChange={(e) =>
-                      setFormData({ ...formData, price: parseFloat(e.target.value) })
+                      setFormData({ ...formData, price_per_card: parseFloat(e.target.value) })
                     }
                   />
                 </div>
@@ -223,10 +223,10 @@ export default function CardDesignsPage() {
                 </TableHeader>
                 <TableBody>
                   {designs.map((design) => (
-                    <TableRow key={design.id}>
-                      <TableCell className="font-medium">{design.name}</TableCell>
+                    <TableRow key={design.design_id}>
+                      <TableCell className="font-medium">{design.design_name}</TableCell>
                       <TableCell>{design.category}</TableCell>
-                      <TableCell>{design.price?.toLocaleString()}</TableCell>
+                      <TableCell>{design.price_per_card?.toLocaleString()}</TableCell>
                       <TableCell className="max-w-xs truncate">
                         {design.description || '-'}
                       </TableCell>
@@ -242,7 +242,7 @@ export default function CardDesignsPage() {
                           size="sm"
                           variant="outline"
                           className="text-red-600"
-                          onClick={() => handleDelete(design.id)}
+                          onClick={() => handleDelete(design.design_id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
