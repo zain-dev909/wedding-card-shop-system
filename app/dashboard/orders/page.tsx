@@ -26,33 +26,33 @@ import { createClient } from '@/lib/supabase/client'
 import { Plus, Trash2, Edit2 } from 'lucide-react'
 
 interface Order {
-  id: string
-  customer_id: string
-  card_design_id: string
-  employee_id: string | null
+  order_id: number
+  customer_id: number
+  design_id: number
+  employee_id: number | null
   quantity: number
-  total_price: number
+  total_amount: number
   order_date: string
-  status: string
-  customer?: { name: string }
-  card_design?: { name: string }
-  employee?: { name: string }
+  order_status: string
+  customerName?: string
+  designName?: string
+  employeeName?: string
 }
 
 interface Customer {
-  id: string
-  name: string
+  customer_id: number
+  customer_name: string
 }
 
 interface CardDesign {
-  id: string
-  name: string
-  price: number
+  design_id: number
+  design_name: string
+  price_per_card: number
 }
 
 interface Employee {
-  id: string
-  name: string
+  employee_id: number
+  employee_name: string
 }
 
 export default function OrdersPage() {
@@ -65,11 +65,12 @@ export default function OrdersPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     customer_id: '',
-    card_design_id: '',
+    design_id: '',
     employee_id: '',
     quantity: 1,
-    total_price: 0,
-    status: 'pending',
+    total_amount: 0,
+    order_status: 'Pending',
+    order_date: new Date().toISOString().split('T')[0],
   })
 
   const supabase = createClient()
@@ -83,9 +84,9 @@ export default function OrdersPage() {
       setLoading(true)
       const [ordersRes, customersRes, designsRes, employeesRes] = await Promise.all([
         supabase.from('orders').select('*').order('order_date', { ascending: false }),
-        supabase.from('customers').select('id, name'),
-        supabase.from('card_designs').select('id, name, price'),
-        supabase.from('employees').select('id, name'),
+        supabase.from('customers').select('customer_id, customer_name'),
+        supabase.from('card_designs').select('design_id, design_name, price_per_card'),
+        supabase.from('employee').select('employee_id, employee_name'),
       ])
 
       setOrders(ordersRes.data || [])
@@ -106,7 +107,7 @@ export default function OrdersPage() {
         const { error } = await supabase
           .from('orders')
           .update(formData)
-          .eq('id', editingId)
+          .eq('order_id', parseInt(editingId))
 
         if (error) throw error
       } else {
@@ -119,11 +120,12 @@ export default function OrdersPage() {
 
       setFormData({
         customer_id: '',
-        card_design_id: '',
+        design_id: '',
         employee_id: '',
         quantity: 1,
-        total_price: 0,
-        status: 'pending',
+        total_amount: 0,
+        order_status: 'Pending',
+        order_date: new Date().toISOString().split('T')[0],
       })
       setEditingId(null)
       setOpen(false)
@@ -135,25 +137,26 @@ export default function OrdersPage() {
 
   const handleEdit = (order: Order) => {
     setFormData({
-      customer_id: order.customer_id,
-      card_design_id: order.card_design_id,
-      employee_id: order.employee_id || '',
+      customer_id: order.customer_id.toString(),
+      design_id: order.design_id.toString(),
+      employee_id: order.employee_id ? order.employee_id.toString() : '',
       quantity: order.quantity,
-      total_price: order.total_price || 0,
-      status: order.status,
+      total_amount: order.total_amount || 0,
+      order_status: order.order_status,
+      order_date: order.order_date,
     })
-    setEditingId(order.id)
+    setEditingId(order.order_id.toString())
     setOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (order_id: number) => {
     if (!confirm('Are you sure?')) return
 
     try {
       const { error } = await supabase
         .from('orders')
         .delete()
-        .eq('id', id)
+        .eq('order_id', order_id)
 
       if (error) throw error
       fetchAllData()
@@ -164,12 +167,12 @@ export default function OrdersPage() {
 
   const handleQuantityChange = (qty: number) => {
     setFormData((prev) => {
-      const design = designs.find((d) => d.id === prev.card_design_id)
-      const price = design ? design.price * qty : 0
+      const design = designs.find((d) => d.design_id === parseInt(prev.design_id))
+      const price = design ? design.price_per_card * qty : 0
       return {
         ...prev,
         quantity: qty,
-        total_price: price,
+        total_amount: price,
       }
     })
   }
@@ -186,11 +189,12 @@ export default function OrdersPage() {
                   setEditingId(null)
                   setFormData({
                     customer_id: '',
-                    card_design_id: '',
+                    design_id: '',
                     employee_id: '',
                     quantity: 1,
-                    total_price: 0,
-                    status: 'pending',
+                    total_amount: 0,
+                    order_status: 'Pending',
+                    order_date: new Date().toISOString().split('T')[0],
                   })
                 }}
               >
@@ -218,8 +222,8 @@ export default function OrdersPage() {
                   >
                     <option value="">Select Customer</option>
                     {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
+                      <option key={c.customer_id} value={c.customer_id}>
+                        {c.customer_name}
                       </option>
                     ))}
                   </select>
@@ -228,17 +232,17 @@ export default function OrdersPage() {
                   <Label htmlFor="design">Card Design *</Label>
                   <select
                     id="design"
-                    value={formData.card_design_id}
+                    value={formData.design_id}
                     onChange={(e) =>
-                      setFormData({ ...formData, card_design_id: e.target.value })
+                      setFormData({ ...formData, design_id: e.target.value })
                     }
                     className="w-full border border-input rounded px-3 py-2"
                     required
                   >
                     <option value="">Select Design</option>
                     {designs.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name} (Rs. {d.price})
+                      <option key={d.design_id} value={d.design_id}>
+                        {d.design_name} (Rs. {d.price_per_card})
                       </option>
                     ))}
                   </select>
@@ -255,8 +259,8 @@ export default function OrdersPage() {
                   >
                     <option value="">Select Employee</option>
                     {employees.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.name}
+                      <option key={e.employee_id} value={e.employee_id}>
+                        {e.employee_name}
                       </option>
                     ))}
                   </select>
@@ -275,11 +279,11 @@ export default function OrdersPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="total">Total Price (Rs.)</Label>
+                  <Label htmlFor="total">Total Amount (Rs.)</Label>
                   <Input
                     id="total"
                     type="number"
-                    value={formData.total_price}
+                    value={formData.total_amount}
                     disabled
                   />
                 </div>
@@ -287,15 +291,17 @@ export default function OrdersPage() {
                   <Label htmlFor="status">Status</Label>
                   <select
                     id="status"
-                    value={formData.status}
+                    value={formData.order_status}
                     onChange={(e) =>
-                      setFormData({ ...formData, status: e.target.value })
+                      setFormData({ ...formData, order_status: e.target.value })
                     }
                     className="w-full border border-input rounded px-3 py-2"
                   >
-                    <option value="pending">Pending</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option value="Pending">Pending</option>
+                    <option value="In Printing">In Printing</option>
+                    <option value="Ready for Pickup">Ready for Pickup</option>
+                    <option value="Delivered">Delivered</option>
+                    <option value="Cancelled">Cancelled</option>
                   </select>
                 </div>
                 <Button type="submit" className="w-full">
@@ -329,35 +335,35 @@ export default function OrdersPage() {
                   </TableHeader>
                   <TableBody>
                     {orders.map((order) => {
-                      const customer = customers.find((c) => c.id === order.customer_id)
-                      const design = designs.find((d) => d.id === order.card_design_id)
-                      const employee = employees.find((e) => e.id === order.employee_id)
+                      const customer = customers.find((c) => c.customer_id === order.customer_id)
+                      const design = designs.find((d) => d.design_id === order.design_id)
+                      const employee = employees.find((e) => e.employee_id === order.employee_id)
 
                       return (
-                        <TableRow key={order.id}>
+                        <TableRow key={order.order_id}>
                           <TableCell className="font-medium">
-                            {customer?.name || '-'}
+                            {customer?.customer_name || '-'}
                           </TableCell>
-                          <TableCell>{design?.name || '-'}</TableCell>
+                          <TableCell>{design?.design_name || '-'}</TableCell>
                           <TableCell>{order.quantity}</TableCell>
                           <TableCell>
-                            Rs. {order.total_price?.toLocaleString()}
+                            Rs. {order.total_amount?.toLocaleString()}
                           </TableCell>
-                          <TableCell>{employee?.name || '-'}</TableCell>
+                          <TableCell>{employee?.employee_name || '-'}</TableCell>
                           <TableCell>
                             {new Date(order.order_date).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
                             <Badge
                               variant={
-                                order.status === 'completed'
+                                order.order_status === 'Delivered'
                                   ? 'default'
-                                  : order.status === 'cancelled'
+                                  : order.order_status === 'Cancelled'
                                     ? 'outline'
                                     : 'secondary'
                               }
                             >
-                              {order.status}
+                              {order.order_status}
                             </Badge>
                           </TableCell>
                           <TableCell className="flex gap-2">
@@ -372,7 +378,7 @@ export default function OrdersPage() {
                               size="sm"
                               variant="outline"
                               className="text-red-600"
-                              onClick={() => handleDelete(order.id)}
+                              onClick={() => handleDelete(order.order_id)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

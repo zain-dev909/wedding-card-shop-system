@@ -14,11 +14,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
 interface Order {
-  id: string
-  customer_id: string
+  order_id: number
+  customer_id: number
   quantity: number
-  total_price: number
-  status: string
+  total_amount: number
+  order_status: string
   order_date: string
   customerName: string
 }
@@ -33,7 +33,7 @@ export function RecentOrders() {
         const supabase = createClient()
         const { data: ordersData, error: ordersError } = await supabase
           .from('orders')
-          .select('id, customer_id, quantity, total_price, status, order_date')
+          .select('order_id, customer_id, quantity, total_amount, order_status, order_date')
           .order('order_date', { ascending: false })
           .limit(5)
 
@@ -43,10 +43,10 @@ export function RecentOrders() {
         const customerIds = ordersData?.map(o => o.customer_id) || []
         const { data: customersData } = await supabase
           .from('customers')
-          .select('id, name')
-          .in('id', customerIds)
+          .select('customer_id, customer_name')
+          .in('customer_id', customerIds)
 
-        const customerMap = new Map(customersData?.map(c => [c.id, c.name]) || [])
+        const customerMap = new Map(customersData?.map(c => [c.customer_id, c.customer_name]) || [])
 
         const enrichedOrders = ordersData?.map(order => ({
           ...order,
@@ -66,11 +66,15 @@ export function RecentOrders() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
+      case 'Delivered':
         return 'bg-green-100 text-green-800'
-      case 'pending':
+      case 'Pending':
         return 'bg-yellow-100 text-yellow-800'
-      case 'cancelled':
+      case 'In Printing':
+        return 'bg-blue-100 text-blue-800'
+      case 'Ready for Pickup':
+        return 'bg-purple-100 text-purple-800'
+      case 'Cancelled':
         return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
@@ -100,18 +104,18 @@ export function RecentOrders() {
             </TableHeader>
             <TableBody>
               {orders.map((order) => (
-                <TableRow key={order.id}>
+                <TableRow key={order.order_id}>
                   <TableCell className="font-medium">
                     {order.customerName}
                   </TableCell>
                   <TableCell>{order.quantity}</TableCell>
-                  <TableCell>Rs. {order.total_price?.toLocaleString()}</TableCell>
+                  <TableCell>Rs. {order.total_amount?.toLocaleString()}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(order.order_date).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(order.status)}>
-                      {order.status}
+                    <Badge className={getStatusColor(order.order_status)}>
+                      {order.order_status}
                     </Badge>
                   </TableCell>
                 </TableRow>

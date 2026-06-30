@@ -7,7 +7,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('customers')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('customer_id', { ascending: false })
 
     if (error) throw error
 
