@@ -56,12 +56,9 @@ export default function CustomersPage() {
   const fetchCustomers = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
+      const response = await fetch('/api/customers')
+      if (!response.ok) throw new Error('Failed to fetch customers')
+      const data = await response.json()
       setCustomers(data || [])
     } catch (error) {
       console.error('Error fetching customers:', error)
