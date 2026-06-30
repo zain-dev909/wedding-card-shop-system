@@ -25,13 +25,13 @@ export default function DashboardPage() {
         const [customersRes, ordersRes, ordersWithPriceRes, pendingRes] = await Promise.all([
           supabase.from('customers').select('*'),
           supabase.from('orders').select('*'),
-          supabase.from('orders').select('total_amount'),
-          supabase.from('orders').select('*').eq('order_status', 'Pending'),
+          supabase.from('orders').select('total_price'),
+          supabase.from('orders').select('*').eq('status', 'pending'),
         ])
 
         let totalRevenue = 0
         if (ordersWithPriceRes.data) {
-          totalRevenue = ordersWithPriceRes.data.reduce((sum, o) => sum + (o.total_amount || 0), 0)
+          totalRevenue = ordersWithPriceRes.data.reduce((sum, o) => sum + (o.total_price || 0), 0)
         }
 
         setStats({

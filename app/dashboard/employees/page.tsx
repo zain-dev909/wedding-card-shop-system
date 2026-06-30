@@ -26,11 +26,12 @@ import { createClient } from '@/lib/supabase/client'
 import { Plus, Trash2, Edit2 } from 'lucide-react'
 
 interface Employee {
-  employee_id: number
-  employee_name: string
-  contact_no: string
-  position: string
-  salary: number
+  id: string
+  name: string
+  email: string
+  phone: string
+  role: string
+  status: string
 }
 
 export default function EmployeesPage() {
@@ -39,10 +40,11 @@ export default function EmployeesPage() {
   const [open, setOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
-    employee_name: '',
-    contact_no: '',
-    position: '',
-    salary: 0,
+    name: '',
+    email: '',
+    phone: '',
+    role: '',
+    status: 'active',
   })
 
   const supabase = createClient()
@@ -55,9 +57,9 @@ export default function EmployeesPage() {
     try {
       setLoading(true)
       const { data, error } = await supabase
-        .from('employee')
+        .from('employees')
         .select('*')
-        .order('employee_id', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (error) throw error
       setEmployees(data || [])
@@ -73,20 +75,20 @@ export default function EmployeesPage() {
     try {
       if (editingId) {
         const { error } = await supabase
-          .from('employee')
+          .from('employees')
           .update(formData)
-          .eq('employee_id', parseInt(editingId))
+          .eq('id', editingId)
 
         if (error) throw error
       } else {
         const { error } = await supabase
-          .from('employee')
+          .from('employees')
           .insert([formData])
 
         if (error) throw error
       }
 
-      setFormData({ employee_name: '', contact_no: '', position: '', salary: 0 })
+      setFormData({ name: '', email: '', phone: '', role: '', status: 'active' })
       setEditingId(null)
       setOpen(false)
       fetchEmployees()
@@ -97,23 +99,24 @@ export default function EmployeesPage() {
 
   const handleEdit = (employee: Employee) => {
     setFormData({
-      employee_name: employee.employee_name,
-      contact_no: employee.contact_no || '',
-      position: employee.position || '',
-      salary: employee.salary || 0,
+      name: employee.name,
+      email: employee.email || '',
+      phone: employee.phone || '',
+      role: employee.role || '',
+      status: employee.status,
     })
-    setEditingId(employee.employee_id.toString())
+    setEditingId(employee.id)
     setOpen(true)
   }
 
-  const handleDelete = async (employee_id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure?')) return
 
     try {
       const { error } = await supabase
-        .from('employee')
+        .from('employees')
         .delete()
-        .eq('employee_id', employee_id)
+        .eq('id', id)
 
       if (error) throw error
       fetchEmployees()
@@ -132,7 +135,7 @@ export default function EmployeesPage() {
               <Button
                 onClick={() => {
                   setEditingId(null)
-                  setFormData({ employee_name: '', contact_no: '', position: '', salary: 0 })
+                  setFormData({ name: '', email: '', phone: '', role: '', status: 'active' })
                 }}
               >
                 <Plus className="h-4 w-4" />
@@ -150,43 +153,57 @@ export default function EmployeesPage() {
                   <Label htmlFor="name">Name *</Label>
                   <Input
                     id="name"
-                    value={formData.employee_name}
+                    value={formData.name}
                     onChange={(e) =>
-                      setFormData({ ...formData, employee_name: e.target.value })
+                      setFormData({ ...formData, name: e.target.value })
                     }
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="position">Position</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
-                    id="position"
-                    value={formData.position}
+                    id="email"
+                    type="email"
+                    value={formData.email}
                     onChange={(e) =>
-                      setFormData({ ...formData, position: e.target.value })
+                      setFormData({ ...formData, email: e.target.value })
                     }
                   />
                 </div>
                 <div>
-                  <Label htmlFor="phone">Contact Number</Label>
+                  <Label htmlFor="phone">Phone</Label>
                   <Input
                     id="phone"
-                    value={formData.contact_no}
+                    value={formData.phone}
                     onChange={(e) =>
-                      setFormData({ ...formData, contact_no: e.target.value })
+                      setFormData({ ...formData, phone: e.target.value })
                     }
                   />
                 </div>
                 <div>
-                  <Label htmlFor="salary">Salary</Label>
+                  <Label htmlFor="role">Role</Label>
                   <Input
-                    id="salary"
-                    type="number"
-                    value={formData.salary}
+                    id="role"
+                    value={formData.role}
                     onChange={(e) =>
-                      setFormData({ ...formData, salary: parseFloat(e.target.value) })
+                      setFormData({ ...formData, role: e.target.value })
                     }
                   />
+                </div>
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <select
+                    id="status"
+                    value={formData.status}
+                    onChange={(e) =>
+                      setFormData({ ...formData, status: e.target.value })
+                    }
+                    className="w-full border border-input rounded px-3 py-2"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
                 </div>
                 <Button type="submit" className="w-full">
                   {editingId ? 'Update' : 'Add'} Employee
@@ -207,19 +224,27 @@ export default function EmployeesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Position</TableHead>
-                    <TableHead>Contact Number</TableHead>
-                    <TableHead>Salary (Rs.)</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {employees.map((employee) => (
-                    <TableRow key={employee.employee_id}>
-                      <TableCell className="font-medium">{employee.employee_name}</TableCell>
-                      <TableCell>{employee.position || '-'}</TableCell>
-                      <TableCell>{employee.contact_no || '-'}</TableCell>
-                      <TableCell>Rs. {employee.salary?.toLocaleString() || '-'}</TableCell>
+                    <TableRow key={employee.id}>
+                      <TableCell className="font-medium">{employee.name}</TableCell>
+                      <TableCell>{employee.email || '-'}</TableCell>
+                      <TableCell>{employee.phone || '-'}</TableCell>
+                      <TableCell>{employee.role || '-'}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={employee.status === 'active' ? 'default' : 'outline'}
+                        >
+                          {employee.status}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="flex gap-2">
                         <Button
                           size="sm"
@@ -232,7 +257,7 @@ export default function EmployeesPage() {
                           size="sm"
                           variant="outline"
                           className="text-red-600"
-                          onClick={() => handleDelete(employee.employee_id)}
+                          onClick={() => handleDelete(employee.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
