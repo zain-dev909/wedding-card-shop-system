@@ -25,11 +25,12 @@ import { createClient } from '@/lib/supabase/client'
 import { Plus, Trash2, Edit2 } from 'lucide-react'
 
 interface Customer {
-  customer_id: number
-  customer_name: string
+  id: string
+  name: string
   email: string
   phone: string
   address: string
+  city: string
 }
 
 export default function CustomersPage() {
@@ -38,10 +39,11 @@ export default function CustomersPage() {
   const [open, setOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
-    customer_name: '',
+    name: '',
     email: '',
     phone: '',
     address: '',
+    city: '',
   })
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -72,7 +74,7 @@ export default function CustomersPage() {
         const { error } = await supabase
           .from('customers')
           .update(formData)
-          .eq('customer_id', parseInt(editingId))
+          .eq('id', editingId)
 
         if (error) throw error
       } else {
@@ -83,7 +85,7 @@ export default function CustomersPage() {
         if (error) throw error
       }
 
-      setFormData({ customer_name: '', email: '', phone: '', address: '' })
+      setFormData({ name: '', email: '', phone: '', address: '', city: '' })
       setEditingId(null)
       setOpen(false)
       fetchCustomers()
@@ -94,23 +96,24 @@ export default function CustomersPage() {
 
   const handleEdit = (customer: Customer) => {
     setFormData({
-      customer_name: customer.customer_name,
+      name: customer.name,
       email: customer.email || '',
       phone: customer.phone || '',
       address: customer.address || '',
+      city: customer.city || '',
     })
-    setEditingId(customer.customer_id.toString())
+    setEditingId(customer.id)
     setOpen(true)
   }
 
-  const handleDelete = async (customer_id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure?')) return
 
     try {
       const { error } = await supabase
         .from('customers')
         .delete()
-        .eq('customer_id', customer_id)
+        .eq('id', id)
 
       if (error) throw error
       fetchCustomers()
@@ -121,7 +124,7 @@ export default function CustomersPage() {
 
   const filteredCustomers = customers.filter(
     (c) =>
-      c.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.phone?.includes(searchTerm)
   )
@@ -136,7 +139,7 @@ export default function CustomersPage() {
               <Button
                 onClick={() => {
                   setEditingId(null)
-                  setFormData({ customer_name: '', email: '', phone: '', address: '' })
+                  setFormData({ name: '', email: '', phone: '', address: '', city: '' })
                 }}
               >
                 <Plus className="h-4 w-4" />
@@ -151,12 +154,12 @@ export default function CustomersPage() {
               </DialogHeader>
               <form onSubmit={handleAddCustomer} className="space-y-4">
                 <div>
-                  <Label htmlFor="customer_name">Name *</Label>
+                  <Label htmlFor="name">Name *</Label>
                   <Input
-                    id="customer_name"
-                    value={formData.customer_name}
+                    id="name"
+                    value={formData.name}
                     onChange={(e) =>
-                      setFormData({ ...formData, customer_name: e.target.value })
+                      setFormData({ ...formData, name: e.target.value })
                     }
                     required
                   />
@@ -192,7 +195,16 @@ export default function CustomersPage() {
                     }
                   />
                 </div>
-
+                <div>
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) =>
+                      setFormData({ ...formData, city: e.target.value })
+                    }
+                  />
+                </div>
                 <Button type="submit" className="w-full">
                   {editingId ? 'Update' : 'Add'} Customer
                 </Button>
@@ -223,17 +235,17 @@ export default function CustomersPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
-                    <TableHead>Address</TableHead>
+                    <TableHead>City</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredCustomers.map((customer) => (
-                    <TableRow key={customer.customer_id}>
-                      <TableCell className="font-medium">{customer.customer_name}</TableCell>
+                    <TableRow key={customer.id}>
+                      <TableCell className="font-medium">{customer.name}</TableCell>
                       <TableCell>{customer.email || '-'}</TableCell>
                       <TableCell>{customer.phone || '-'}</TableCell>
-                      <TableCell>{customer.address || '-'}</TableCell>
+                      <TableCell>{customer.city || '-'}</TableCell>
                       <TableCell className="flex gap-2">
                         <Button
                           size="sm"
@@ -246,7 +258,7 @@ export default function CustomersPage() {
                           size="sm"
                           variant="outline"
                           className="text-red-600"
-                          onClick={() => handleDelete(customer.customer_id)}
+                          onClick={() => handleDelete(customer.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
